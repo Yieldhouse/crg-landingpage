@@ -7,6 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Franklin:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- CRG SETTINGS — Airtable keys & CRM password live in config.js. Nothing to edit in this file. -->
+<script src="config.js"></script>
+
 <style>
 :root{
   --navy:#0a2540;
@@ -523,28 +527,7 @@ table.checkin tr:nth-child(even) td{background:#f6f8fa}
 
     <!-- ============ DASHBOARD ============ -->
     <section class="view active" id="dashboard">
-      <div class="stat-row">
-        <div class="stat gold">
-          <div class="k">Next Event Fill</div>
-          <div class="v">42<span style="font-size:18px;color:var(--slate)">/60</span></div>
-          <div class="d">Feb 20 · Rogers Country Club · <b>70%</b> full</div>
-        </div>
-        <div class="stat">
-          <div class="k">Registered (all upcoming)</div>
-          <div class="v">67</div>
-          <div class="d"><b>+18</b> this week</div>
-        </div>
-        <div class="stat">
-          <div class="k">Avg Show Rate</div>
-          <div class="v">63%</div>
-          <div class="d">Across 4 past events</div>
-        </div>
-        <div class="stat">
-          <div class="k">Sent to Sales</div>
-          <div class="v">29</div>
-          <div class="d">Attendees → Houston's pipeline</div>
-        </div>
-      </div>
+      <div class="stat-row" id="statRow"></div>
 
       <div class="sec">
         <div class="sec-head">
@@ -745,12 +728,20 @@ table.checkin tr:nth-child(even) td{background:#f6f8fa}
 
 <script>
 /* ---------------- DATA ---------------- */
-const EVENTS = [
-  {id:'e1', name:'Retirement Blueprint Dinner', venue:'Rogers Country Club', date:'2026-02-20', time:'6:00 PM', cap:60, status:'upcoming', reg:42, conf:31, att:0, noshow:0},
-  {id:'e2', name:'Social Security Maximizer Workshop', venue:'Bentonville Public Library', date:'2026-03-05', time:'5:30 PM', cap:40, status:'upcoming', reg:25, conf:14, att:0, noshow:0},
-  {id:'e3', name:'Tax-Smart Retirement Luncheon', venue:'Embassy Suites NWA', date:'2026-01-16', time:'12:00 PM', cap:50, status:'past', reg:48, conf:40, att:29, noshow:11},
-  {id:'e4', name:'Estate & Legacy Planning Dinner', venue:'Pinnacle Country Club', date:'2025-12-04', time:'6:30 PM', cap:45, status:'past', reg:44, conf:38, att:27, noshow:11},
-];
+/* ============================================================
+   DATA LAYER — loads from Airtable (config.js). Falls back to a
+   small demo set if config.js hasn't been filled in yet, so the
+   dashboard still renders while you're setting things up.
+   ============================================================ */
+const AT = window.CRG_CONFIG || {};
+const AT_LIVE = AT.baseId && AT.token && !String(AT.baseId).startsWith('PASTE');
+const AT_URL = table => `https://api.airtable.com/v0/${AT.baseId}/${encodeURIComponent(table)}`;
+const AT_HEADERS = {'Authorization':`Bearer ${AT.token}`,'Content-Type':'application/json'};
+
+let EVENTS = [];
+let CONTACTS = [];
+let TASKS = [];
+// map of our internal event id -> Airtable record id (same thing when live)
 const STAGES = [
   {k:'Registered', c:'#2f6fb0'},
   {k:'Confirmed', c:'#c98a1a'},
@@ -759,39 +750,116 @@ const STAGES = [
 ];
 const TIMELINES = ['Within 1 year','1–3 years','3–5 years','5+ years','Already retired'];
 const SOURCES = ['Facebook Ad','Referral','Website','Past attendee'];
-const FIRST = ['Robert','Linda','James','Patricia','Michael','Barbara','William','Susan','David','Karen','Richard','Nancy','Joseph','Betty','Thomas','Sandra','Charles','Carol','Daniel','Ruth','Gary','Sharon','Kenneth','Donna','Larry','Deborah','Stephen','Cheryl','Ronald','Kathleen'];
-const LAST = ['Whitfield','Carraway','Alderman','Prescott','Hollis','Ramsey','Kingsley','Vance','Ellsworth','Braddock','Sutton','Merrick','Copeland','Fairchild','Ashby','Radcliff','Thornton','Winslow','Beaumont','Calloway'];
 
-let CONTACTS = [];
-(function seed(){
-  let seed=42; const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+/* fetch all rows from a table (handles Airtable's 100-row pages) */
+async function atFetchAll(table){
+  let records=[],offset;
+  do{
+    const url=AT_URL(table)+(offset?`?offset=${offset}`:'');
+    const res=await fetch(url,{headers:AT_HEADERS});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||('Could not load '+table));}
+    const data=await res.json();
+    records=records.concat(data.records);offset=data.offset;
+  }while(offset);
+  return records;
+}
+
+/* recompute an event's counts from its linked contacts */
+function recountEvent(e){
+  const r=CONTACTS.filter(c=>c.eventId===e.id);
+  e.reg=r.length;
+  e.conf=r.filter(c=>['Confirmed','Attended','No-Show'].includes(c.stage)).length;
+  e.att=r.filter(c=>c.stage==='Attended').length;
+  e.noshow=r.filter(c=>c.stage==='No-Show').length;
+}
+
+async function loadAllData(){
+  if(!AT_LIVE){ seedDemo(); return; }
+  const [evRecs, coRecs, tkRecs] = await Promise.all([
+    atFetchAll(AT.tables.events),
+    atFetchAll(AT.tables.contacts),
+    atFetchAll(AT.tables.tasks).catch(()=>[])  // tasks table optional
+  ]);
+  const today=new Date();
+  EVENTS = evRecs.map(r=>{
+    const f=r.fields;
+    const past = f['Date'] ? new Date(f['Date']+'T00:00:00') < today : false;
+    return {id:r.id,name:f['Event Name']||'Untitled',venue:f['Venue']||'',date:f['Date']||'',time:f['Time']||'',
+      cap:f['Capacity']||0,status:(f['Status']||(past?'Completed':'Upcoming')).toLowerCase()==='upcoming'?'upcoming':'past',
+      reg:0,conf:0,att:0,noshow:0};
+  }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  CONTACTS = coRecs.map(r=>{
+    const f=r.fields;
+    const evLink = Array.isArray(f['Event'])?f['Event'][0]:null;
+    const reg = f['Registered On']||'';
+    const daysSince = reg ? Math.max(0,Math.round((today-new Date(reg+'T00:00:00'))/86400000)) : 0;
+    return {id:r.id,first:f['First Name']||'',last:f['Last Name']||'',email:f['Email']||'',phone:f['Phone']||'',
+      eventId:evLink,stage:f['Status']||'Registered',timeline:f['Retirement Timeline']||'',source:f['Lead Source']||'Website',
+      guests:f['Party Size']||'Just me',registered:reg,lastContact:daysSince,
+      eventsCount:f['Events Attended Count']||1,sentToSales:!!f['Sent to Sales'],notes:f['Notes']||''};
+  });
+
+  TASKS = tkRecs.map(r=>{
+    const f=r.fields;
+    return {id:r.id,text:f['Task']||'',due:f['Due Date']||null,done:!!f['Done'],assignee:f['Assignee']||'',notes:f['Notes']||''};
+  });
+  if(!TASKS.length && !tkRecs.length){ /* tasks table empty or absent — that's fine */ }
+
+  EVENTS.forEach(recountEvent);
+}
+
+/* ---- demo fallback (only runs if config.js not filled in) ---- */
+function seedDemo(){
+  EVENTS=[
+    {id:'e1',name:'Retirement Blueprint Dinner',venue:'Rogers Country Club',date:'2026-02-20',time:'6:00 PM',cap:60,status:'upcoming',reg:0,conf:0,att:0,noshow:0},
+    {id:'e2',name:'Social Security Maximizer Workshop',venue:'Bentonville Public Library',date:'2026-03-05',time:'5:30 PM',cap:40,status:'upcoming',reg:0,conf:0,att:0,noshow:0},
+    {id:'e3',name:'Tax-Smart Retirement Luncheon',venue:'Embassy Suites NWA',date:'2026-01-16',time:'12:00 PM',cap:50,status:'past',reg:0,conf:0,att:0,noshow:0},
+    {id:'e4',name:'Estate & Legacy Planning Dinner',venue:'Pinnacle Country Club',date:'2025-12-04',time:'6:30 PM',cap:45,status:'past',reg:0,conf:0,att:0,noshow:0},
+  ];
+  const FIRST=['Robert','Linda','James','Patricia','Michael','Barbara','William','Susan','David','Karen','Richard','Nancy','Joseph','Betty','Thomas','Sandra','Charles','Carol','Daniel','Ruth','Gary','Sharon','Kenneth','Donna','Larry','Deborah','Stephen','Cheryl','Ronald','Kathleen'];
+  const LAST=['Whitfield','Carraway','Alderman','Prescott','Hollis','Ramsey','Kingsley','Vance','Ellsworth','Braddock','Sutton','Merrick','Copeland','Fairchild','Ashby','Radcliff','Thornton','Winslow','Beaumont','Calloway'];
+  let seed=42;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
   const pick=a=>a[Math.floor(rnd()*a.length)];
   const nDays=n=>{const d=new Date('2026-01-28');d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);};
   let id=1;
-  const build=(ev,stage,count)=>{
-    for(let i=0;i<count;i++){
-      const f=pick(FIRST), l=pick(LAST);
-      const days=Math.floor(rnd()*20);
-      CONTACTS.push({
-        id:'c'+(id++), first:f, last:l,
-        email:(f[0]+l).toLowerCase()+'@email.com',
-        phone:'(479) 555-'+String(1000+Math.floor(rnd()*8999)).slice(0,4),
-        eventId:ev.id, stage, timeline:pick(TIMELINES), source:pick(SOURCES),
-        guests:rnd()>0.7?'+1 guest':'Just me',
-        registered:nDays(days+ (ev.status==='past'?30:0)),
-        lastContact:days, eventsCount:1+ (rnd()>0.72?1:0),
-        sentToSales: stage==='Attended' && rnd()>0.35,
-        notes: pick(['Asked about 401k rollover timing.','Wants to bring spouse.','Concerned about market volatility.','Recently sold a business.','Referred by existing client.','Interested in tax strategy.'])
-      });
-    }
-  };
-  // upcoming: registered + confirmed only
-  build(EVENTS[0],'Registered',24); build(EVENTS[0],'Confirmed',18);
-  build(EVENTS[1],'Registered',15); build(EVENTS[1],'Confirmed',10);
-  // past: full spread
-  build(EVENTS[2],'Attended',29); build(EVENTS[2],'No-Show',11); build(EVENTS[2],'Confirmed',3);
-  build(EVENTS[3],'Attended',24); build(EVENTS[3],'No-Show',11); build(EVENTS[3],'Registered',4);
-})();
+  const build=(ev,stage,count)=>{for(let i=0;i<count;i++){const f=pick(FIRST),l=pick(LAST);const days=Math.floor(rnd()*20);
+    CONTACTS.push({id:'c'+(id++),first:f,last:l,email:(f[0]+l).toLowerCase()+'@email.com',phone:'(479) 555-'+String(1000+Math.floor(rnd()*8999)).slice(0,4),
+    eventId:ev.id,stage,timeline:pick(TIMELINES),source:pick(SOURCES),guests:rnd()>0.7?'+1 guest':'Just me',registered:nDays(days+(ev.status==='past'?30:0)),
+    lastContact:days,eventsCount:1+(rnd()>0.72?1:0),sentToSales:stage==='Attended'&&rnd()>0.35,
+    notes:pick(['Asked about 401k rollover timing.','Wants to bring spouse.','Concerned about market volatility.','Recently sold a business.','Referred by existing client.','Interested in tax strategy.'])});}};
+  build(EVENTS[0],'Registered',24);build(EVENTS[0],'Confirmed',18);
+  build(EVENTS[1],'Registered',15);build(EVENTS[1],'Confirmed',10);
+  build(EVENTS[2],'Attended',29);build(EVENTS[2],'No-Show',11);build(EVENTS[2],'Confirmed',3);
+  build(EVENTS[3],'Attended',24);build(EVENTS[3],'No-Show',11);build(EVENTS[3],'Registered',4);
+  TASKS=[
+    {id:'t1',text:'Call no-shows from Tax-Smart luncheon to re-invite',due:'2026-01-28',done:false,assignee:'Houston',notes:'Focus on the 3–5 year timeline folks first.'},
+    {id:'t2',text:'Confirm catering headcount for Retirement Blueprint Dinner',due:'2026-01-30',done:false,assignee:'Front Desk',notes:''},
+    {id:'t3',text:'Send Houston the attendee list from Estate & Legacy dinner',due:'2026-01-27',done:false,assignee:'Snapper',notes:''},
+  ];
+  EVENTS.forEach(recountEvent);
+}
+
+/* ---- write helpers (patch a record back to Airtable) ---- */
+async function atPatch(table,recId,fields){
+  if(!AT_LIVE) return true; // demo mode: no-op, UI already updated
+  try{
+    const res=await fetch(`${AT_URL(table)}/${recId}`,{method:'PATCH',headers:AT_HEADERS,body:JSON.stringify({fields})});
+    if(!res.ok)throw new Error('save failed');
+    return true;
+  }catch(e){console.error(e);toast('Could not save to Airtable — check your connection');return false;}
+}
+async function atCreate(table,fields){
+  if(!AT_LIVE) return {id:'local'+Date.now()};
+  const res=await fetch(AT_URL(table),{method:'POST',headers:AT_HEADERS,body:JSON.stringify({fields})});
+  if(!res.ok){toast('Could not save to Airtable');return null;}
+  return await res.json();
+}
+async function atDelete(table,recId){
+  if(!AT_LIVE) return true;
+  const res=await fetch(`${AT_URL(table)}/${recId}`,{method:'DELETE',headers:AT_HEADERS});
+  return res.ok;
+}
 
 const evName = id => (EVENTS.find(e=>e.id===id)||{}).name || '—';
 const evShort = id => evName(id).split(' ').slice(0,2).join(' ');
@@ -845,11 +913,10 @@ function renderEventLists(){
   document.getElementById('dashEvents').innerHTML = EVENTS.filter(e=>e.status==='upcoming').map(e=>eventCard(e,'eventQuickView')).join('');
   document.getElementById('allEvents').innerHTML = EVENTS.map(e=>eventCard(e,'openEventPage')).join('');
 }
-renderEventLists();
 
 /* dashboard newest leads */
 function dashLeads(){
-  const rows=[...CONTACTS].filter(c=>EVENTS.find(e=>e.id===c.eventId).status==='upcoming')
+  const rows=[...CONTACTS].filter(c=>{const e=EVENTS.find(e=>e.id===c.eventId);return e&&e.status==='upcoming';})
     .sort((a,b)=>a.lastContact-b.lastContact).slice(0,7);
   document.getElementById('dashLeads').innerHTML=rows.map(c=>`
     <tr onclick="openContact('${c.id}')">
@@ -860,7 +927,6 @@ function dashLeads(){
       <td class="muted">${daysWord(c.lastContact)}</td>
     </tr>`).join('');
 }
-dashLeads();
 
 /* ---------------- CONTACTS TABLE ---------------- */
 function renderContacts(){
@@ -919,8 +985,8 @@ function dropCard(e,stage){
   e.preventDefault();
   document.querySelectorAll('.kcol').forEach(k=>k.classList.remove('drag-over'));
   const c=CONTACTS.find(x=>x.id===draggedId);
-  if(c&&c.stage!==stage){c.stage=stage;c.lastContact=0;renderKanban();
-    toast(`${c.first} ${c.last} → ${stage} · contact record updated`);}
+  if(c&&c.stage!==stage){c.stage=stage;c.lastContact=0;const ev=EVENTS.find(x=>x.id===c.eventId);if(ev)recountEvent(ev);renderKanban();renderEventLists();
+    toast(`${c.first} ${c.last} → ${stage} · contact record updated`);atPatch(AT.tables.contacts,c.id,{'Status':stage});}
 }
 
 /* ---------------- SLIDE PANEL ---------------- */
@@ -1144,7 +1210,7 @@ function renderRoster(id){
     </tr>`;
   }).join('');
 }
-function rosterSetStage(cid,eid,stage){const c=CONTACTS.find(x=>x.id===cid);c.stage=stage;c.lastContact=0;renderRoster(eid);dashLeads();toast(`${c.first} ${c.last} → ${stage}`);}
+function rosterSetStage(cid,eid,stage){const c=CONTACTS.find(x=>x.id===cid);c.stage=stage;c.lastContact=0;const e=EVENTS.find(x=>x.id===eid);if(e)recountEvent(e);renderRoster(eid);dashLeads();renderEventLists();toast(`${c.first} ${c.last} → ${stage}`);atPatch(AT.tables.contacts,cid,{'Status':stage});}
 function saveEvent(id){
   const e=EVENTS.find(x=>x.id===id);
   e.name=document.getElementById('edEvName').value.trim()||e.name;
@@ -1153,6 +1219,7 @@ function saveEvent(id){
   e.venue=document.getElementById('edEvVenue').value.trim()||e.venue;
   e.cap=parseInt(document.getElementById('edEvCap').value)||e.cap;
   renderEventLists();openEventPage(id);toast('Event updated');
+  atPatch(AT.tables.events,id,{'Event Name':e.name,'Date':e.date,'Time':e.time,'Venue':e.venue,'Capacity':e.cap});
 }
 /* per-event export/print wrappers */
 function exportEventCSV(id){
@@ -1175,8 +1242,8 @@ function printCheckinFor(id){document.getElementById('printEventSel').value=id;p
 function printNametagsFor(id){document.getElementById('printEventSel').value=id;printNametags();}
 
 function closePanel(){document.getElementById('overlay').classList.remove('open');document.getElementById('slideover').classList.remove('open');}
-function setStage(id,stage){const c=CONTACTS.find(x=>x.id===id);c.stage=stage;c.lastContact=0;openContact(id);dashLeads();renderContacts();toast(`Marked ${stage}`);}
-function sendToSales(id){const c=CONTACTS.find(x=>x.id===id);c.sentToSales=true;openContact(id);toast(`${c.first} ${c.last} sent to Houston's pipeline`);}
+function setStage(id,stage){const c=CONTACTS.find(x=>x.id===id);c.stage=stage;c.lastContact=0;const e=EVENTS.find(x=>x.id===c.eventId);if(e)recountEvent(e);openContact(id);dashLeads();renderContacts();renderEventLists();toast(`Marked ${stage}`);atPatch(AT.tables.contacts,id,{'Status':stage});}
+function sendToSales(id){const c=CONTACTS.find(x=>x.id===id);c.sentToSales=true;openContact(id);toast(`${c.first} ${c.last} sent to Houston's pipeline`);atPatch(AT.tables.contacts,id,{'Sent to Sales':true});}
 function logAct(id,type){const c=CONTACTS.find(x=>x.id===id);c.lastContact=0;
   const tl=document.getElementById('tl-'+id);
   const el=document.createElement('div');el.className='tl-item';
@@ -1226,7 +1293,7 @@ function toast(msg){clearTimeout(toastT);document.getElementById('toastMsg').tex
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePanel();['eventModal','regModal'].forEach(closeModal);closeMenus();}});
 
 /* ---------------- LOGIN GATE ---------------- */
-const CREDS={user:'crg',pass:'events2026'};
+const CREDS={user:(window.CRG_CONFIG&&window.CRG_CONFIG.crmUsername)||'crg',pass:(window.CRG_CONFIG&&window.CRG_CONFIG.crmPassword)||'events2026'};
 // clone sidebar logo into login header
 document.getElementById('loginLogo').innerHTML=document.querySelector('.sidebar-logo').innerHTML;
 function doLogin(){
@@ -1247,15 +1314,8 @@ document.addEventListener('click',()=>closeMenus());
 document.querySelectorAll('.menu').forEach(m=>m.addEventListener('click',e=>e.stopPropagation()));
 
 /* ---------------- TASKS ---------------- */
-const TODAY=new Date('2026-01-28T00:00:00'); // demo "today" anchor (matches seed data)
+const TODAY=new Date(new Date().toISOString().slice(0,10)+'T00:00:00'); // real today
 const TEAM=['Snapper','Houston','Front Desk'];
-function isoOffset(n){const d=new Date(TODAY);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
-let TASKS=[
-  {id:'t1',text:'Call no-shows from Tax-Smart luncheon to re-invite',due:isoOffset(0),done:false,assignee:'Houston',notes:'Focus on the 3–5 year timeline folks first — highest intent.'},
-  {id:'t2',text:'Confirm catering headcount for Retirement Blueprint Dinner',due:isoOffset(2),done:false,assignee:'Front Desk',notes:''},
-  {id:'t3',text:'Send Houston the attendee list from Estate & Legacy dinner',due:isoOffset(-1),done:false,assignee:'Snapper',notes:''},
-  {id:'t4',text:'Post Social Security Workshop to Facebook',due:isoOffset(5),done:true,assignee:'Snapper',notes:''},
-];
 let taskSeq=5;
 function fillAssigneeSelect(){
   document.getElementById('taskAssignee').innerHTML='<option value="">Unassigned</option>'+TEAM.map(m=>`<option>${m}</option>`).join('');
@@ -1264,12 +1324,15 @@ function addTask(){
   const inp=document.getElementById('taskInput');const t=inp.value.trim();if(!t)return;
   const due=document.getElementById('taskDue').value||null;
   const assignee=document.getElementById('taskAssignee').value||'';
-  TASKS.unshift({id:'t'+(taskSeq++),text:t,due,done:false,assignee,notes:''});
+  const localId='t'+(taskSeq++);
+  const task={id:localId,text:t,due,done:false,assignee,notes:''};
+  TASKS.unshift(task);
   inp.value='';document.getElementById('taskDue').value='';document.getElementById('taskAssignee').value='';
   renderTasks();toast('Task added');
+  atCreate(AT.tables.tasks,{'Task':t,'Due Date':due,'Assignee':assignee,'Done':false,'Notes':''}).then(rec=>{if(rec&&rec.id)task.id=rec.id;});
 }
-function toggleTask(id,ev){if(ev)ev.stopPropagation();const t=TASKS.find(x=>x.id===id);t.done=!t.done;renderTasks();}
-function delTask(id,ev){if(ev)ev.stopPropagation();TASKS=TASKS.filter(x=>x.id!==id);renderTasks();closePanel();toast('Task removed');}
+function toggleTask(id,ev){if(ev)ev.stopPropagation();const t=TASKS.find(x=>x.id===id);t.done=!t.done;renderTasks();atPatch(AT.tables.tasks,id,{'Done':t.done});}
+function delTask(id,ev){if(ev)ev.stopPropagation();TASKS=TASKS.filter(x=>x.id!==id);renderTasks();closePanel();toast('Task removed');atDelete(AT.tables.tasks,id);}
 function daysUntil(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00');return Math.round((d-TODAY)/86400000);}
 function dueTag(iso){
   const d=daysUntil(iso);
@@ -1361,6 +1424,7 @@ function saveTask(id){
   t.notes=document.getElementById('edNotes').value.trim();
   t.done=document.getElementById('edDone').value==='true';
   renderTasks();closePanel();toast('Task updated');
+  atPatch(AT.tables.tasks,id,{'Task':t.text,'Due Date':t.due,'Assignee':t.assignee,'Notes':t.notes,'Done':t.done});
 }
 
 /* ---------------- CSV EXPORT ---------------- */
@@ -1445,10 +1509,44 @@ function printNametags(){
   setTimeout(()=>window.print(),80);
 }
 
-fillPrintEventSel();
-fillAssigneeSelect();
-renderTasks();
-renderContacts();
+/* ---------------- DASHBOARD STATS (computed from live data) ---------------- */
+function renderDashStats(){
+  const upcoming=EVENTS.filter(e=>e.status==='upcoming').sort((a,b)=>a.date.localeCompare(b.date));
+  const next=upcoming[0];
+  const past=EVENTS.filter(e=>e.status==='past');
+  const regUpcoming=CONTACTS.filter(c=>{const e=EVENTS.find(x=>x.id===c.eventId);return e&&e.status==='upcoming';}).length;
+  const showRates=past.filter(e=>(e.att+e.noshow)>0).map(e=>e.att/(e.att+e.noshow));
+  const avgShow=showRates.length?Math.round(showRates.reduce((a,b)=>a+b,0)/showRates.length*100):0;
+  const sentSales=CONTACTS.filter(c=>c.sentToSales).length;
+  const el=document.getElementById('statRow');if(!el)return;
+  el.innerHTML=`
+    <div class="stat gold">
+      <div class="k">Next Event Fill</div>
+      <div class="v">${next?next.reg:0}<span style="font-size:18px;color:var(--slate)">/${next?next.cap:0}</span></div>
+      <div class="d">${next?`${fmtDate(next.date)} · ${next.venue} · <b>${next.cap?Math.round(next.reg/next.cap*100):0}%</b> full`:'No upcoming events'}</div>
+    </div>
+    <div class="stat"><div class="k">Registered (all upcoming)</div><div class="v">${regUpcoming}</div><div class="d">Across ${upcoming.length} upcoming event${upcoming.length===1?'':'s'}</div></div>
+    <div class="stat"><div class="k">Avg Show Rate</div><div class="v">${avgShow}%</div><div class="d">Across ${past.length} past event${past.length===1?'':'s'}</div></div>
+    <div class="stat"><div class="k">Sent to Sales</div><div class="v">${sentSales}</div><div class="d">Attendees → Houston's pipeline</div></div>`;
+}
+
+/* ---------------- INIT ---------------- */
+async function initApp(){
+  fillAssigneeSelect();
+  try{
+    await loadAllData();
+  }catch(err){
+    console.error(err);
+    toast('Could not load data from Airtable — check config.js and your connection');
+  }
+  renderDashStats();
+  renderEventLists();
+  dashLeads();
+  fillPrintEventSel();
+  renderTasks();
+  renderContacts();
+}
+initApp();
 </script>
 </body>
 </html>
