@@ -785,7 +785,7 @@ async function loadAllData(){
     const f=r.fields;
     const past = f['Date'] ? new Date(f['Date']+'T00:00:00') < today : false;
     return {id:r.id,name:f['Event Name']||'Untitled',venue:f['Venue']||'',date:f['Date']||'',time:f['Time']||'',
-      cap:f['Capacity']||0,status:(f['Status']||(past?'Completed':'Upcoming')).toLowerCase()==='upcoming'?'upcoming':'past',
+      cap:f['Capacity']||0,status:String(f['Status']||(past?'Completed':'Upcoming')).toLowerCase()==='upcoming'?'upcoming':'past',
       reg:0,conf:0,att:0,noshow:0};
   }).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 
@@ -795,7 +795,7 @@ async function loadAllData(){
     const reg = f['Registered On']||'';
     const daysSince = reg ? Math.max(0,Math.round((today-new Date(reg+'T00:00:00'))/86400000)) : 0;
     return {id:r.id,first:f['First Name']||'',last:f['Last Name']||'',email:f['Email']||'',phone:f['Phone']||'',
-      eventId:evLink,stage:f['Status']||'Registered',timeline:f['Retirement Timeline']||'',source:f['Lead Source']||'Website',
+      eventId:evLink,stage:String(f['Status']||'Registered'),timeline:f['Retirement Timeline']||'',source:f['Lead Source']||'Website',
       guests:f['Party Size']||'Just me',registered:reg,lastContact:daysSince,
       eventsCount:f['Events Attended Count']||1,sentToSales:!!f['Sent to Sales'],notes:f['Notes']||''};
   });
@@ -863,7 +863,7 @@ async function atDelete(table,recId){
 
 const evName = id => (EVENTS.find(e=>e.id===id)||{}).name || '—';
 const evShort = id => evName(id).split(' ').slice(0,2).join(' ');
-const initials = c => (c.first[0]+c.last[0]).toUpperCase();
+const initials = c => {const f=String(c.first||'').trim(),l=String(c.last||'').trim();const i=((f[0]||'')+(l[0]||'')).toUpperCase();return i||'?';};
 const fmtDate = s => {const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
 const mon = s => new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short'}).toUpperCase();
 const day = s => new Date(s+'T00:00:00').getDate();
@@ -934,7 +934,7 @@ function renderContacts(){
   const st=document.getElementById('contactStatus').value;
   const sort=document.getElementById('contactSort').value;
   let rows=CONTACTS.filter(c=>{
-    const m=(c.first+' '+c.last+' '+c.email).toLowerCase().includes(q);
+    const m=((c.first||'')+' '+(c.last||'')+' '+(c.email||'')).toLowerCase().includes(q);
     const s=st==='all'||c.stage===st;
     return m&&s;
   });
@@ -1192,7 +1192,7 @@ function renderRoster(id){
   const q=(document.getElementById('rosterSearch')?.value||'').toLowerCase();
   const st=document.getElementById('rosterStatus')?.value||'all';
   const rows=CONTACTS.filter(c=>c.eventId===id)
-    .filter(c=>((c.first+' '+c.last+' '+c.email).toLowerCase().includes(q))&&(st==='all'||c.stage===st))
+    .filter(c=>(((c.first||'')+' '+(c.last||'')+' '+(c.email||'')).toLowerCase().includes(q))&&(st==='all'||c.stage===st))
     .sort((a,b)=>a.last.localeCompare(b.last));
   const tb=document.getElementById('rosterRows');if(!tb)return;
   if(!rows.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--slate);padding:26px">No matching registrants.</td></tr>';return;}
@@ -1227,7 +1227,7 @@ function exportEventCSV(id){
   const q=(document.getElementById('rosterSearch')?.value||'').toLowerCase();
   const st=document.getElementById('rosterStatus')?.value||'all';
   const list=CONTACTS.filter(c=>c.eventId===id)
-    .filter(c=>((c.first+' '+c.last+' '+c.email).toLowerCase().includes(q))&&(st==='all'||c.stage===st))
+    .filter(c=>(((c.first||'')+' '+(c.last||'')+' '+(c.email||'')).toLowerCase().includes(q))&&(st==='all'||c.stage===st))
     .sort((a,b)=>a.last.localeCompare(b.last));
   const head=['First Name','Last Name','Email','Phone','Status','Retirement Timeline','Party Size','Lead Source','Sent to Sales','Notes'];
   const rows=list.map(c=>[c.first,c.last,c.email,c.phone,c.stage,c.timeline,c.guests,c.source,c.sentToSales?'Yes':'No',c.notes]);
@@ -1343,7 +1343,7 @@ function dueTag(iso){
   if(d===1)return `<span class="task-due">Tomorrow · ${nice}</span>`;
   return `<span class="task-due">${nice}</span>`;
 }
-function taskInitials(name){return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function taskInitials(name){return String(name||'').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';}
 function renderTasks(){
   const open=TASKS.filter(t=>!t.done);
   const done=TASKS.filter(t=>t.done);
@@ -1438,7 +1438,7 @@ function contactRowsFor(scope){
   if(scope==='filtered'){
     const q=(document.getElementById('contactSearch').value||'').toLowerCase();
     const st=document.getElementById('contactStatus').value;
-    return CONTACTS.filter(c=>((c.first+' '+c.last+' '+c.email).toLowerCase().includes(q))&&(st==='all'||c.stage===st));
+    return CONTACTS.filter(c=>(((c.first||'')+' '+(c.last||'')+' '+(c.email||'')).toLowerCase().includes(q))&&(st==='all'||c.stage===st));
   }
   return CONTACTS;
 }
