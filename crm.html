@@ -122,6 +122,7 @@ body{
 .event-date-badge .d{font-family:'Libre Franklin',sans-serif;font-size:20px;font-weight:700;line-height:1;margin-top:1px}
 .event-top .name{font-family:'Libre Franklin',sans-serif;font-size:17px;font-weight:600;max-width:74%}
 .event-top .meta{font-size:12px;color:rgba(255,255,255,.72);margin-top:6px;display:flex;align-items:center;gap:6px}
+.event-top .meta-time{margin-top:3px}
 .event-body{padding:15px 18px}
 .event-fill-bar{height:8px;background:var(--line-soft);border-radius:20px;overflow:hidden;margin:4px 0 10px}
 .event-fill-bar span{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--gold),var(--gold-soft))}
@@ -893,7 +894,11 @@ function eventCard(e,onclick){
       <div class="name">${e.name}</div>
       <div class="meta">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${e.venue} · ${e.time}
+        ${e.venue}
+      </div>
+      <div class="meta meta-time">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        ${e.time}
       </div>
     </div>
     <div class="event-body">
