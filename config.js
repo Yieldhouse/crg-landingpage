@@ -1,34 +1,21 @@
 /* ============================================================
-   CAPITAL RESOURCE GROUP — SETTINGS FILE
+   CRG — LANDING PAGE SETTINGS  (crg-educationevents.com)
    ============================================================
+   This file connects the public landing page to Airtable so it
+   can show upcoming events and write registrations.
 
-   This is the ONLY file you need to edit to connect everything
-   to your Airtable. Follow the setup guide (SETUP-GUIDE.html) —
-   it tells you exactly what to paste into each spot below.
-
-   Replace the text inside the quote marks. Keep the quote marks.
+   ⚠️  ROTATE THIS TOKEN. The value below was previously exposed.
+       Generate a new Airtable personal access token, revoke the
+       old one, and paste the new value in BOTH repos' config.js.
+       Scope it to just this one base if you can.
    ============================================================ */
 
 window.CRG_CONFIG = {
-
-  // 1) Your Airtable Base ID — starts with "app..."
   baseId: "app6mvBUixINfO0IM",
-
-  // 2) Your Airtable Access Token — starts with "pat..."
-  token: "pat6lHOncu73cjkNK.5cfc9d64d7a0177b77d99705281c84113f05b6f2f58850380efff3074e119c69",
-
-  // 3) Table names — leave these exactly as they are unless you
-  //    renamed a table in Airtable.
+  token:  "patu404MEe4QdyzDk.d72836596d5b59ed3576755a49ac4c45f6821c032d5ee05818735bbf2cb8d466",
   tables: {
     events:   "Events",
     contacts: "Contacts",
     tasks:    "Tasks"
-  },
-
-  // 4) The password to open the CRM dashboard.
-  //    (This is a simple gate. Real security is handled by
-  //    Cloudflare Access — see the guide.)
-  crmUsername: "crg",
-  crmPassword: "events2026"
-
+  }
 };
