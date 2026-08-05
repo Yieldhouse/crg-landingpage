@@ -12,7 +12,7 @@
 
 window.CRG_CONFIG = {
   baseId: "app6mvBUixINfO0IM",
-  token:  "pat6lHOncu73cjkNK.5cfc9d64d7a0177b77d99705281c84113f05b6f2f58850380efff3074e119c69",
+  token:  "patasXzkQHwhAYJYX.844622df651e0f97e977c80d78b2163cb6d4e311ee7ec25144e6f1c4562a2ef4",
   tables: {
     events:   "Events",
     contacts: "Contacts",
