@@ -1179,6 +1179,8 @@ async function handleSubmit(){
     return;
   }
 
+  if (typeof fbq === 'function') { fbq('track', 'Lead'); }
+
   const btn = document.querySelector('.btn-submit');
   btn.disabled = true; btn.textContent = 'Reserving…';
 
