@@ -324,6 +324,8 @@ nav {
 .field-group input::placeholder { color: rgba(255,255,255,0.3); font-size: 0.95rem; }
 .field-group select { color: rgba(255,255,255,0.8); }
 .field-group select option { background: var(--navy-mid); color: var(--white); }
+.field-group.guest-name-group { display: none; }
+.field-group.guest-name-group.visible { display: flex; }
 .field-group input:focus,
 .field-group select:focus {
   border-color: var(--gold);
@@ -973,11 +975,17 @@ footer {
         <div class="form-grid form-grid-single">
           <div class="field-group">
             <label>Guests Attending</label>
-            <select id="guests">
+            <select id="guests" onchange="toggleGuestName()">
               <option value="" disabled selected>Select...</option>
               <option>Just me</option>
               <option>Me + 1 guest</option>
             </select>
+          </div>
+        </div>
+        <div class="form-grid form-grid-single">
+          <div class="field-group guest-name-group" id="guest-name-group">
+            <label>Guest Name</label>
+            <input type="text" id="guestname" placeholder="Guest's full name" />
           </div>
         </div>
 
@@ -1160,6 +1168,12 @@ function selectSession(id){
   const btn=document.getElementById('sess-'+id);
   if(btn) btn.classList.add('active');
 }
+function toggleGuestName(){
+  const isGuest = document.getElementById('guests').value === 'Me + 1 guest';
+  const group = document.getElementById('guest-name-group');
+  group.classList.toggle('visible', isGuest);
+  if (!isGuest) document.getElementById('guestname').value = '';
+}
 
 /* ---- submit registration to Airtable, linked to the chosen event ---- */
 async function handleSubmit(){
@@ -1169,9 +1183,14 @@ async function handleSubmit(){
   const email   = document.getElementById('email').value.trim();
   const session = document.getElementById('session').value;
   const guests  = document.getElementById('guests').value;
+  const guestName = document.getElementById('guestname').value.trim();
 
   if (!fname || !lname || !phone || !email || !session || !guests) {
     alert('Please complete all fields and select a session date to reserve your seat.');
+    return;
+  }
+  if (guests === 'Me + 1 guest' && !guestName) {
+    alert('Please enter your guest\'s name.');
     return;
   }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -1195,6 +1214,9 @@ async function handleSubmit(){
     'Event': [session],                                   // links to the Events table record
     'Registered On': new Date().toISOString().slice(0,10)
   }};
+  if (guests === 'Me + 1 guest' && guestName) {
+    record.fields['Guest Name'] = guestName;
+  }
 
   // preview mode (config.js not filled in) — just show success
   if (!AT_LIVE) { showSuccess(); return; }
