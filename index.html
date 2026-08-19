@@ -1,33 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1808566063642292');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1808566063642292&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Free Retirement & Estate Planning Workshop | Capital Resource Group</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet" />
-
-<!-- CRG SETTINGS — Airtable connection lives in config.js. Nothing to edit in this file. -->
-<script src="config.js"></script>
-
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -324,8 +303,6 @@ nav {
 .field-group input::placeholder { color: rgba(255,255,255,0.3); font-size: 0.95rem; }
 .field-group select { color: rgba(255,255,255,0.8); }
 .field-group select option { background: var(--navy-mid); color: var(--white); }
-.field-group.guest-name-group { display: none; }
-.field-group.guest-name-group.visible { display: flex; }
 .field-group input:focus,
 .field-group select:focus {
   border-color: var(--gold);
@@ -737,7 +714,8 @@ footer {
   .form-fine { font-size: 0.7rem; }
 
   /* Session picker */
-  .session-picker { gap: 8px; }
+  .session-picker-single { grid-template-columns: 1fr; }
+.session-picker { gap: 8px; }
   .session-btn { padding: 14px 10px; }
   .session-date { font-size: 1rem; }
   .session-day { font-size: 0.68rem; }
@@ -804,27 +782,13 @@ footer {
 
 
 /* ── SESSION PICKER ── */
+.session-picker-single { grid-template-columns: 1fr; }
 .session-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 6px;
 }
-.session-loading {
-  grid-column: 1 / -1;
-  padding: 18px 12px;
-  text-align: center;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.5);
-  border: 1px dashed rgba(255,255,255,0.15);
-}
-.session-venue {
-  font-size: 0.68rem;
-  color: rgba(255,255,255,0.4);
-  font-weight: 400;
-  margin-top: 2px;
-}
-.session-btn.active .session-venue { color: rgba(196,153,42,0.7); }
 .session-btn {
   display: flex;
   flex-direction: column;
@@ -865,7 +829,7 @@ footer {
 <body>
 
 <!-- ANNOUNCEMENT BAR -->
-<div class="ann-bar">Free Educational Workshop — August 18 &amp; 20, 2026 · NWACC Springdale Campus · No Investments Will Be Promoted · Reserve Your Seat Now.</div>
+<div class="ann-bar">Free Educational Workshop — August 20, 2026 · NWACC Springdale Campus · No Investments Will Be Promoted · Reserve Your Seat Now.</div>
 
 <!-- NAV -->
 <nav>
@@ -885,11 +849,11 @@ footer {
       <div class="event-badge">
         <span class="badge-dot"></span>
         <span class="badge-line"></span>
-        Free Live Event · August 18 &amp; 20, 2026
+        Free Live Event · August 20, 2026
       </div>
 
-      <h1 class="hero-headline">The tax rules on your retirement<br>have <em>changed.</em></h1>
-      <p class="hero-sub">The stretch IRA is gone. Medicare surcharges now hinge on a single dollar. And the account you're proudest of may be taxed the hardest — sometimes on your children's return. Join Houston Harrison and the Capital Resource Group team for a free, education-only evening on the retirement tax rules already in effect. No products sold, no obligation.</p>
+      <h1 class="hero-headline">Understanding Retirement Income<br>&amp; <em>Estate Planning.</em></h1>
+      <p class="hero-sub">An educational evening with Houston Harrison and the Capital Resource Group team covering the key topics to understand as you approach retirement — Social Security, taxes, healthcare, and estate basics. Light snacks provided. No products sold, no obligation.</p>
 
       <!-- EVENT DETAILS — Cormorant Garamond italic -->
       <div class="event-details">
@@ -899,7 +863,7 @@ footer {
           </div>
           <div class="detail-text">
             <span class="detail-label">Date</span>
-            <span class="detail-value">August 18 &amp; 20, 2026 &mdash; <span>Two Sessions Available</span></span>
+            <span class="detail-value">August 20, 2026 &mdash; <span>Night 2 Still Open</span></span>
           </div>
         </div>
         <div class="event-detail-row">
@@ -936,7 +900,7 @@ footer {
     <div class="hero-right">
       <div class="form-header">
         <div class="form-eyebrow">Reserve Your Seat</div>
-        <h2 class="form-title">Reserve your seat — before it fills.</h2>
+        <h2 class="form-title">Save your spot — it's free.</h2>
       </div>
 
       <div id="form-inner">
@@ -964,34 +928,30 @@ footer {
             <input type="email" id="email" placeholder="you@email.com" />
           </div>
         </div>
-        <!-- SESSION PICKER — events load live from the CRM (Airtable) -->
+        <!-- SESSION PICKER -->
         <div class="field-group" style="margin-bottom:14px;">
-          <label>Which session will you attend?</label>
-          <div class="session-picker" id="session-picker">
-            <div class="session-loading">Loading available sessions…</div>
+          <label>Session</label>
+          <div class="session-picker session-picker-single">
+            <button type="button" class="session-btn active" id="sess-aug20" onclick="selectSession('aug20')">
+              <span class="session-date">August 20</span>
+              <span class="session-day">Thursday &middot; 6:30 PM</span>
+            </button>
           </div>
-          <input type="hidden" id="session" value="" />
+          <input type="hidden" id="session" value="aug20" />
         </div>
         <div class="form-grid form-grid-single">
           <div class="field-group">
             <label>Guests Attending</label>
-            <select id="guests" onchange="toggleGuestName()">
+            <select id="guests">
               <option value="" disabled selected>Select...</option>
               <option>Just me</option>
               <option>Me + 1 guest</option>
             </select>
           </div>
         </div>
-        <div class="form-grid form-grid-single">
-          <div class="field-group guest-name-group" id="guest-name-group">
-            <label>Guest Name</label>
-            <input type="text" id="guestname" placeholder="Guest's full name" />
-          </div>
-        </div>
 
         <button class="btn-submit" onclick="handleSubmit()">Reserve My Free Seat →</button>
         <p class="form-fine">Free event. No products sold. A team member will confirm your registration within 24 hours.</p>
-        <p class="form-fine">By selecting &ldquo;Reserve My Free Seat,&rdquo; you acknowledge that you will receive emails and text messages from Capital Resource Group regarding this event and potential future events, and that your information will never be sold to third-party distributors.</p>
       </div>
 
       <div class="success-state" id="success-state">
@@ -1012,38 +972,38 @@ footer {
 <section class="topics-section section-wrap">
   <div class="section-inner">
     <div class="section-eyebrow">Attend This Workshop and Learn</div>
-    <h2 class="section-heading">Six retirement tax rules worth<br>understanding before it's too late.</h2>
-    <p class="section-sub">None of these are predictions or opinions — they're current IRS and Medicare rules, already affecting families near retirement. Bring your questions. Leave with a clearer map.</p>
+    <h2 class="section-heading">Six retirement topics worth<br>understanding before you retire.</h2>
+    <p class="section-sub">An educational overview of the major areas to think through as you plan. Bring your questions. Leave with a clearer understanding.</p>
     <div class="topics-grid">
       <div class="topic-card">
         <div class="topic-num">01</div>
-        <h3>The Inherited-IRA Tax Bomb</h3>
-        <p>The "stretch IRA" ended in 2025. How the new 10-year rule works, who it hits hardest, and why a lifetime of saving can reach your kids as a tax bill.</p>
+        <h3>Retirement Income Basics</h3>
+        <p>An overview of how people think about turning savings into steady income in retirement, and the general categories of options that exist.</p>
       </div>
       <div class="topic-card">
         <div class="topic-num">02</div>
-        <h3>The IRMAA Cliff</h3>
-        <p>Medicare's income surcharge is a cliff, not a slope. How one dollar over a bracket can raise your premiums for a full year, and why it looks back two years.</p>
+        <h3>Taxes in Retirement</h3>
+        <p>How different types of retirement accounts are generally taxed, and why the order you draw from them can matter.</p>
       </div>
       <div class="topic-card">
         <div class="topic-num">03</div>
-        <h3>The Deferred-Tax Catch</h3>
-        <p>Tax-deferred isn't tax-free. How the taxes you postponed come due — often at a higher rate later, and sometimes on the people who inherit the account.</p>
+        <h3>Managing Risk in Retirement</h3>
+        <p>An overview of the common risks retirees plan around — market movement, inflation, and long-term care — and the general concepts used to think about them.</p>
       </div>
       <div class="topic-card">
         <div class="topic-num">04</div>
-        <h3>Required Withdrawals &amp; RMDs</h3>
-        <p>How required minimum distributions work, and why forced withdrawals can push you into higher brackets — and higher Medicare premiums — later in retirement.</p>
+        <h3>Social Security Timing</h3>
+        <p>How claiming age affects benefit amounts, and the factors people weigh when deciding when to file.</p>
       </div>
       <div class="topic-card">
         <div class="topic-num">05</div>
-        <h3>The Retirement Tax Timeline</h3>
-        <p>Retirement taxes run on a delay. What's decided when, why the two-year look-back matters, and which planning windows quietly close as you age.</p>
+        <h3>Medicare &amp; Healthcare Basics</h3>
+        <p>A plain-language overview of how Medicare works around age 65 and the coverage categories to be aware of.</p>
       </div>
       <div class="topic-card">
         <div class="topic-num">06</div>
-        <h3>Protecting Your Legacy</h3>
-        <p>How beneficiaries, account type, and the order you draw down all shape what your family actually keeps — versus what goes to taxes.</p>
+        <h3>Estate &amp; Legacy Basics</h3>
+        <p>An introduction to common estate-planning concepts — wills, beneficiaries, and how probate generally works.</p>
       </div>
     </div>
   </div>
@@ -1059,7 +1019,7 @@ footer {
     <div class="pitch-right">
       <div class="pitch-item"><div class="pitch-dot"></div>No investments promoted — strictly educational</div>
       <div class="pitch-item"><div class="pitch-dot"></div>Free to attend — light snacks provided</div>
-      <div class="pitch-item"><div class="pitch-dot"></div>NWACC Springdale Campus — August 18 &amp; 20</div>
+      <div class="pitch-item"><div class="pitch-dot"></div>NWACC Springdale Campus — August 20</div>
       <div class="pitch-item"><div class="pitch-dot"></div>6:30 – 7:30 PM both evenings</div>
       <div class="pitch-item"><div class="pitch-dot"></div>Spouses and guests are welcome</div>
       <div class="pitch-item"><div class="pitch-dot"></div>Questions? Call 501-322-8701</div>
@@ -1096,149 +1056,36 @@ footer {
     <div class="footer-legal">
 Capital Resource Group, LLC is an independent financial services firm. Securities offered through HRH Financial, LLC. Insurance products offered through Senior Benefit Group, LLC.<br />
       This event is educational and informational only. No specific investment, insurance, or financial product will be offered, sold, or recommended at this event, and attendance creates no obligation. This is not investment, tax, or legal advice; consult a qualified professional regarding your specific situation.<br />
-      NWACC Springdale Campus · Aug 18 &amp; 20, 2026 · <a href="https://www.capresgrp.com">capresgrp.com</a> · Questions? <a href="tel:5013228701">501-322-8701</a> · © 2026 Capital Resource Group, LLC
+      NWACC Springdale Campus · Aug 20, 2026 · <a href="https://www.capresgrp.com">capresgrp.com</a> · Questions? <a href="tel:5013228701">501-322-8701</a> · © 2026 Capital Resource Group, LLC
     </div>
   </div>
 </footer>
 
 <script>
-/* ============================================================
-   CRG LANDING PAGE — wired to the CRM's Airtable.
-   Events load live from the Events table; each registration is
-   written to Contacts and linked to the chosen event record,
-   so it lands on that event's page inside the CRM.
-   All connection settings live in config.js.
-   ============================================================ */
-const AT = window.CRG_CONFIG || {};
-const AT_LIVE = AT.baseId && AT.token && !String(AT.baseId).startsWith('PASTE');
-const AT_URL = table => `https://api.airtable.com/v0/${AT.baseId}/${encodeURIComponent(table)}`;
-const AT_HEADERS = {'Authorization':`Bearer ${AT.token}`,'Content-Type':'application/json'};
-
-let EVENTS_CACHE = [];
-let selectedEventId = '';
-
-const fmtMonthDay = s => new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'});
-const fmtWeekday  = s => new Date(s+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'});
-
-/* ---- load upcoming events from Airtable ---- */
-async function loadSessions(){
-  const picker = document.getElementById('session-picker');
-  if(!AT_LIVE){
-    // preview fallback so the page still works before config.js is filled in
-    EVENTS_CACHE = [
-      {id:'demo1',name:'Retirement & Estate Planning Workshop',date:'2026-08-18',time:'6:30 PM',venue:'NWACC Springdale Campus'},
-      {id:'demo2',name:'Retirement & Estate Planning Workshop',date:'2026-08-20',time:'6:30 PM',venue:'NWACC Springdale Campus'},
-    ];
-    renderSessions();return;
-  }
-  try{
-    const res = await fetch(AT_URL(AT.tables.events)+'?filterByFormula='+encodeURIComponent("{Status}='Upcoming'"),{headers:AT_HEADERS});
-    const data = await res.json();
-    if(!data.records) throw new Error('no records');
-    EVENTS_CACHE = data.records.map(r=>({
-      id:r.id,
-      name:r.fields['Event Name']||'Workshop',
-      date:r.fields['Date']||'',
-      time:r.fields['Time']||'',
-      venue:r.fields['Venue']||''
-    })).filter(e=>e.date).sort((a,b)=>a.date.localeCompare(b.date));
-    renderSessions();
-  }catch(err){
-    console.error('Could not load sessions:',err);
-    picker.innerHTML='<div class="session-loading">Sessions are being updated — please call 501-322-8701 to reserve.</div>';
-  }
-}
-function renderSessions(){
-  const picker = document.getElementById('session-picker');
-  if(!EVENTS_CACHE.length){
-    picker.innerHTML='<div class="session-loading">No upcoming sessions right now — check back soon.</div>';
-    return;
-  }
-  picker.innerHTML = EVENTS_CACHE.map(e=>`
-    <button type="button" class="session-btn" id="sess-${e.id}" onclick="selectSession('${e.id}')">
-      <span class="session-date">${fmtMonthDay(e.date)}</span>
-      <span class="session-day">${fmtWeekday(e.date)} &middot; ${e.time}</span>
-      ${e.venue?`<span class="session-venue">${e.venue}</span>`:''}
-    </button>`).join('');
-}
-function selectSession(id){
-  selectedEventId = id;
-  document.getElementById('session').value = id;
-  document.querySelectorAll('.session-btn').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('sess-'+id);
-  if(btn) btn.classList.add('active');
-}
-function toggleGuestName(){
-  const isGuest = document.getElementById('guests').value === 'Me + 1 guest';
-  const group = document.getElementById('guest-name-group');
-  group.classList.toggle('visible', isGuest);
-  if (!isGuest) document.getElementById('guestname').value = '';
-}
-
-/* ---- submit registration to Airtable, linked to the chosen event ---- */
-async function handleSubmit(){
-  const fname   = document.getElementById('fname').value.trim();
-  const lname   = document.getElementById('lname').value.trim();
-  const phone   = document.getElementById('phone').value.trim();
-  const email   = document.getElementById('email').value.trim();
-  const session = document.getElementById('session').value;
-  const guests  = document.getElementById('guests').value;
-  const guestName = document.getElementById('guestname').value.trim();
-
-  if (!fname || !lname || !phone || !email || !session || !guests) {
-    alert('Please complete all fields and select a session date to reserve your seat.');
-    return;
-  }
-  if (guests === 'Me + 1 guest' && !guestName) {
-    alert('Please enter your guest\'s name.');
-    return;
-  }
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    alert('Please enter a valid email address.');
-    return;
+  function selectSession(sess) {
+    document.getElementById('session').value = sess;
+    document.querySelectorAll('.session-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('sess-' + sess).classList.add('active');
   }
 
-  if (typeof fbq === 'function') { fbq('track', 'Lead'); }
+  function handleSubmit() {
+    const fname   = document.getElementById('fname').value.trim();
+    const lname   = document.getElementById('lname').value.trim();
+    const phone   = document.getElementById('phone').value.trim();
+    const email   = document.getElementById('email').value.trim();
+    const session = document.getElementById('session').value;
+    const guests  = document.getElementById('guests').value;
 
-  const btn = document.querySelector('.btn-submit');
-  btn.disabled = true; btn.textContent = 'Reserving…';
+    if (!fname || !lname || !phone || !email || !session || !guests) {
+      alert('Please complete all fields and select a session date to reserve your seat.');
+      return;
+    }
 
-  const record = { fields: {
-    'First Name': fname,
-    'Last Name': lname,
-    'Email': email,
-    'Phone': phone,
-    'Party Size': guests,
-    'Status': 'Registered',
-    'Lead Source': 'Website',
-    'Event': [session],                                   // links to the Events table record
-    'Registered On': new Date().toISOString().slice(0,10)
-  }};
-  if (guests === 'Me + 1 guest' && guestName) {
-    record.fields['Guest Name'] = guestName;
+    document.getElementById('form-inner').style.display = 'none';
+    const s = document.getElementById('success-state');
+    s.style.display = 'block';
+    s.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-
-  // preview mode (config.js not filled in) — just show success
-  if (!AT_LIVE) { showSuccess(); return; }
-
-  try {
-    const res = await fetch(AT_URL(AT.tables.contacts), {method:'POST', headers:AT_HEADERS, body:JSON.stringify(record)});
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error?.message||'save failed'); }
-    showSuccess();
-  } catch (err) {
-    console.error(err);
-    alert('Something went wrong saving your reservation. Please call 501-322-8701 and we\'ll get you in.');
-    btn.disabled = false; btn.textContent = 'Reserve My Free Seat →';
-  }
-}
-function showSuccess(){
-  document.getElementById('form-inner').style.display = 'none';
-  const s = document.getElementById('success-state');
-  s.style.display = 'block';
-  s.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-loadSessions();
 </script>
 </body>
 </html>
