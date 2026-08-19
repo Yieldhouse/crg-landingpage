@@ -832,6 +832,7 @@ footer {
   letter-spacing: 0.02em;
 }
 .session-btn.active .session-day { color: rgba(196,153,42,0.8); }
+.session-loading { font-size: 0.85rem; color: rgba(255,255,255,0.5); grid-column: 1 / -1; text-align: center; padding: 10px 0; }
 </style>
 <script src="config.js"></script>
 </head>
@@ -940,13 +941,10 @@ footer {
         <!-- SESSION PICKER -->
         <div class="field-group" style="margin-bottom:14px;">
           <label>Session</label>
-          <div class="session-picker session-picker-single">
-            <button type="button" class="session-btn active" id="sess-aug20" onclick="selectSession('aug20')">
-              <span class="session-date">August 20</span>
-              <span class="session-day">Thursday &middot; 6:30 PM</span>
-            </button>
+          <div class="session-picker session-picker-single" id="session-picker">
+            <div class="session-loading">Loading available nights…</div>
           </div>
-          <input type="hidden" id="session" value="aug20" />
+          <input type="hidden" id="session" value="" />
         </div>
         <div class="form-grid form-grid-single">
           <div class="field-group">
@@ -1082,6 +1080,46 @@ Capital Resource Group, LLC is an independent financial services firm. Securitie
   const AT_URL = table => `https://api.airtable.com/v0/${AT.baseId}/${encodeURIComponent(table)}`;
   const AT_HEADERS = {'Authorization':`Bearer ${AT.token}`,'Content-Type':'application/json'};
 
+  let EVENTS_CACHE = [];
+
+  const fmtMonthDay = s => new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'});
+  const fmtWeekday  = s => new Date(s+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'});
+
+  async function loadSessions(){
+    const picker = document.getElementById('session-picker');
+    if(!AT_LIVE){
+      EVENTS_CACHE = [{id:'demo1', date:'2026-08-20', time:'6:30 PM'}];
+      renderSessions();
+      return;
+    }
+    try{
+      const res = await fetch(AT_URL(AT.tables.events)+'?filterByFormula='+encodeURIComponent("{Status}='Upcoming'"),{headers:AT_HEADERS});
+      const data = await res.json();
+      if(!data.records) throw new Error('no records');
+      EVENTS_CACHE = data.records.map(r=>({
+        id:r.id,
+        date:r.fields['Date']||'',
+        time:r.fields['Time']||''
+      })).filter(e=>e.date).sort((a,b)=>a.date.localeCompare(b.date));
+      renderSessions();
+    }catch(err){
+      console.error('Could not load sessions:', err);
+      picker.innerHTML = '<div class="session-loading">Sessions are being updated — please call 501-322-8701 to reserve.</div>';
+    }
+  }
+  function renderSessions(){
+    const picker = document.getElementById('session-picker');
+    if(!EVENTS_CACHE.length){
+      picker.innerHTML = '<div class="session-loading">No upcoming sessions right now — check back soon.</div>';
+      return;
+    }
+    picker.innerHTML = EVENTS_CACHE.map(e=>`
+      <button type="button" class="session-btn" id="sess-${e.id}" onclick="selectSession('${e.id}')">
+        <span class="session-date">${fmtMonthDay(e.date)}</span>
+        <span class="session-day">${fmtWeekday(e.date)} &middot; ${e.time}</span>
+      </button>`).join('');
+    selectSession(EVENTS_CACHE[0].id);
+  }
   function selectSession(sess) {
     document.getElementById('session').value = sess;
     document.querySelectorAll('.session-btn').forEach(b => b.classList.remove('active'));
@@ -1133,11 +1171,14 @@ Capital Resource Group, LLC is an independent financial services firm. Securitie
       'Phone': phone,
       'Party Size': guests,
       'Status': 'Registered',
-      'Lead Source': 'Short Form',
+      'Lead Source': 'Website',
       'Registered On': new Date().toISOString().slice(0,10)
     };
     if (guests === 'Me + 1 guest' && guestName) {
       fields['Guest Name'] = guestName;
+    }
+    if (!String(session).startsWith('demo')) {
+      fields['Event'] = [session];
     }
 
     try {
@@ -1158,6 +1199,8 @@ Capital Resource Group, LLC is an independent financial services firm. Securitie
       submitBtn.textContent = 'Reserve My Free Seat →';
     }
   }
+
+  loadSessions();
 </script>
 </body>
 </html>
