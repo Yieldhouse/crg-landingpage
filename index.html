@@ -1093,7 +1093,7 @@ Capital Resource Group, LLC is an independent financial services firm. Securitie
       return;
     }
     try{
-      const res = await fetch(AT_URL(AT.tables.events)+'?filterByFormula='+encodeURIComponent("AND({Status}='Upcoming', {Date}='2026-08-20')"),{headers:AT_HEADERS});
+      const res = await fetch(AT_URL(AT.tables.events)+'?filterByFormula='+encodeURIComponent("AND({Status}='Upcoming', IS_SAME({Date}, '2026-08-20', 'day'))"),{headers:AT_HEADERS});
       const data = await res.json();
       if(!data.records) throw new Error('no records');
       EVENTS_CACHE = data.records.map(r=>({
